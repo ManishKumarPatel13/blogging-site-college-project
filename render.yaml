@@ -1,0 +1,30 @@
+services:
+  # Backend API Service
+  - type: web
+    name: blogging-app-backend
+    runtime: node
+    region: singapore
+    plan: free
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: blogging_site
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: PORT
+        value: 5000
+    healthCheckPath: /
+
+databases:
+  - name: blogging_site
+    databaseName: blogging_site
+    user: blogging_site_user
+    region: singapore
+    plan: free

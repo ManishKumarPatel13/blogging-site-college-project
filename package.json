@@ -1,0 +1,24 @@
+{
+  "name": "blogging-app",
+  "version": "1.0.0",
+  "description": "Full-stack blogging application with PostgreSQL backend",
+  "main": "backend/server.js",
+  "scripts": {
+    "start": "cd backend && node server.js",
+    "dev": "cd backend && nodemon server.js",
+    "deploy": "git add . && git commit -m 'Deploy to Render' && git push origin main"
+  },
+  "keywords": [
+    "blog",
+    "postgresql",
+    "express",
+    "nodejs",
+    "sequelize"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ManishKumarPatel13/blogging-site-college-project.git"
+  }
+}
