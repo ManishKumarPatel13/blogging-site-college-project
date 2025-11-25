@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Save, X, Sparkles, Tag, Loader2 } from 'lucide-react';
 import { useBlog, useUpdateBlog } from '../hooks/useBlogs';
+import { useAuthStore } from '../stores/authStore';
 import BlogEditor from '../components/blog/BlogEditor';
 import AutoTagSuggestions from '../components/ai/AutoTagSuggestions';
 import TitleGenerator from '../components/ai/TitleGenerator';
@@ -26,6 +27,7 @@ const CATEGORIES = [
 const EditBlogPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuthStore();
   const { data: blog, isLoading, error } = useBlog(id);
   const updateBlog = useUpdateBlog();
   
@@ -38,6 +40,18 @@ const EditBlogPage = () => {
   const [coverImage, setCoverImage] = useState('');
   const [showAITools, setShowAITools] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+
+  // Check ownership and redirect if not the author
+  useEffect(() => {
+    if (blog && user) {
+      const authorId = blog.author?.id || blog.authorId;
+      const userId = user.id || user._id;
+      if (String(userId) !== String(authorId)) {
+        toast.error('You are not authorized to edit this blog');
+        navigate(`/blog/${id}`);
+      }
+    }
+  }, [blog, user, id, navigate]);
 
   // Populate form with existing blog data
   useEffect(() => {

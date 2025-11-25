@@ -330,8 +330,8 @@ router.put('/:id', auth, async (req, res) => {
     }
 
     // Check if user is the author of this blog
-    if (blog.authorId !== req.user.id) {
-      return res.status(401).json({ 
+    if (String(blog.authorId) !== String(req.user.id)) {
+      return res.status(403).json({ 
         message: 'You are not authorized to update this blog post' 
       });
     }
@@ -419,8 +419,8 @@ router.delete('/:id', auth, async (req, res) => {
     }
 
     // Check if user is the author of this blog
-    if (blog.authorId !== req.user.id) {
-      return res.status(401).json({ 
+    if (String(blog.authorId) !== String(req.user.id)) {
+      return res.status(403).json({ 
         message: 'You are not authorized to delete this blog post' 
       });
     }

@@ -59,7 +59,9 @@ const BlogViewer = ({ blog, isLoading }) => {
   } = blog;
 
   const blogId = _id || id;
-  const isAuthor = user && (user.id === author?._id || user._id === author?._id);
+  const authorId = author?.id || author?._id;
+  const userId = user?.id || user?._id;
+  const isAuthor = user && userId && authorId && String(userId) === String(authorId);
 
   // Format dates
   const formattedDate = createdAt
