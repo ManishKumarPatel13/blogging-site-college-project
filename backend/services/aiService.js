@@ -28,6 +28,41 @@ const MODELS = {
 // Fallback model if primary fails
 const FALLBACK_MODEL = 'llama-3.1-8b-instant';
 
+// Content moderation keywords that indicate a refusal
+const REFUSAL_PATTERNS = [
+  /i cannot|i can't|i'm unable|i am unable/i,
+  /i will not|i won't/i,
+  /inappropriate|offensive|harmful/i,
+  /against my guidelines|violates.*policy/i,
+  /as an ai|as a language model/i,
+  /i'm not able to|i am not able to/i,
+  /cannot assist with|can't help with/i,
+  /explicit|adult content|nsfw/i,
+];
+
+/**
+ * Check if response indicates content moderation refusal
+ * @private
+ */
+const isContentRefusal = (response) => {
+  if (!response || response.length < 10) return false;
+  
+  // Check first 200 chars for refusal patterns
+  const checkText = response.substring(0, 200).toLowerCase();
+  return REFUSAL_PATTERNS.some(pattern => pattern.test(checkText));
+};
+
+/**
+ * Custom error class for content moderation
+ */
+class ContentModerationError extends Error {
+  constructor(message = 'Content was flagged by AI safety filters') {
+    super(message);
+    this.name = 'ContentModerationError';
+    this.code = 'CONTENT_MODERATED';
+  }
+}
+
 /**
  * Make a completion request to Groq
  * @private
@@ -44,8 +79,31 @@ const makeCompletion = async (systemPrompt, userPrompt, model = MODELS.FAST) => 
       max_tokens: 1024,
     });
 
-    return completion.choices[0]?.message?.content || '';
+    const response = completion.choices[0]?.message?.content || '';
+    
+    // Check if AI refused to generate content
+    if (isContentRefusal(response)) {
+      throw new ContentModerationError(
+        'The AI could not process this content due to safety guidelines. Please ensure your content is appropriate and try again.'
+      );
+    }
+
+    return response;
   } catch (error) {
+    // Re-throw content moderation errors
+    if (error instanceof ContentModerationError) {
+      throw error;
+    }
+    
+    // Check for API-level content filtering
+    if (error.message?.includes('content_filter') || 
+        error.message?.includes('moderation') ||
+        error.code === 'content_policy_violation') {
+      throw new ContentModerationError(
+        'Your content was flagged by safety filters. Please modify your content and try again.'
+      );
+    }
+    
     console.error(`Groq API Error with model ${model}:`, error.message);
     
     // Try fallback model if primary fails
@@ -61,8 +119,21 @@ const makeCompletion = async (systemPrompt, userPrompt, model = MODELS.FAST) => 
           temperature: 0.7,
           max_tokens: 1024,
         });
-        return fallbackCompletion.choices[0]?.message?.content || '';
+        
+        const fallbackResponse = fallbackCompletion.choices[0]?.message?.content || '';
+        
+        // Check fallback response for refusal
+        if (isContentRefusal(fallbackResponse)) {
+          throw new ContentModerationError(
+            'The AI could not process this content due to safety guidelines. Please ensure your content is appropriate and try again.'
+          );
+        }
+        
+        return fallbackResponse;
       } catch (fallbackError) {
+        if (fallbackError instanceof ContentModerationError) {
+          throw fallbackError;
+        }
         console.error('Fallback model also failed:', fallbackError.message);
         throw new Error('AI service temporarily unavailable');
       }
@@ -71,6 +142,9 @@ const makeCompletion = async (systemPrompt, userPrompt, model = MODELS.FAST) => 
     throw new Error('AI service temporarily unavailable');
   }
 };
+
+// Export ContentModerationError for use in routes
+module.exports.ContentModerationError = ContentModerationError;
 
 /**
  * Generate auto-tags from blog content

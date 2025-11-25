@@ -22,6 +22,9 @@ const aiService = require('../services/aiService');
 
 const router = express.Router();
 
+// Get ContentModerationError for proper error handling
+const { ContentModerationError } = aiService;
+
 /**
  * Check if AI service is available
  */
@@ -33,6 +36,39 @@ const checkAIAvailable = (req, res, next) => {
     });
   }
   next();
+};
+
+/**
+ * Error handler for AI routes - handles content moderation gracefully
+ */
+const handleAIError = (error, res, defaultMessage) => {
+  console.error('AI Error:', error.message);
+  
+  // Handle content moderation errors with 422 status
+  if (error instanceof ContentModerationError || error.code === 'CONTENT_MODERATED') {
+    return res.status(422).json({
+      success: false,
+      message: error.message,
+      code: 'CONTENT_MODERATED',
+      hint: 'The AI has safety filters that prevent generating certain types of content. Please ensure your content is appropriate for all audiences.',
+    });
+  }
+  
+  // Handle service unavailable
+  if (error.message === 'AI service temporarily unavailable') {
+    return res.status(503).json({
+      success: false,
+      message: 'AI service is temporarily unavailable. Please try again later.',
+      code: 'SERVICE_UNAVAILABLE',
+    });
+  }
+  
+  // Generic error
+  return res.status(500).json({
+    success: false,
+    message: defaultMessage || 'An error occurred while processing your request',
+    error: error.message,
+  });
 };
 
 // Apply middleware to all routes
@@ -75,12 +111,7 @@ router.post('/tags', async (req, res) => {
       count: tags.length,
     });
   } catch (error) {
-    console.error('Tag generation error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to generate tags',
-      error: error.message,
-    });
+    handleAIError(error, res, 'Failed to generate tags');
   }
 });
 
@@ -120,12 +151,7 @@ router.post('/summary', async (req, res) => {
       length,
     });
   } catch (error) {
-    console.error('Summary generation error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to generate summary',
-      error: error.message,
-    });
+    handleAIError(error, res, 'Failed to generate summary');
   }
 });
 
@@ -158,12 +184,7 @@ router.post('/titles', async (req, res) => {
       count: titles.length,
     });
   } catch (error) {
-    console.error('Title generation error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to generate titles',
-      error: error.message,
-    });
+    handleAIError(error, res, 'Failed to generate titles');
   }
 });
 
@@ -204,12 +225,7 @@ router.post('/expand', async (req, res) => {
       expandedLength: expanded.length,
     });
   } catch (error) {
-    console.error('Text expansion error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to expand text',
-      error: error.message,
-    });
+    handleAIError(error, res, 'Failed to expand text');
   }
 });
 
@@ -247,12 +263,7 @@ router.post('/improve', async (req, res) => {
       ...result,
     });
   } catch (error) {
-    console.error('Text improvement error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to improve text',
-      error: error.message,
-    });
+    handleAIError(error, res, 'Failed to improve text');
   }
 });
 
@@ -300,12 +311,7 @@ router.post('/tone', async (req, res) => {
       targetTone,
     });
   } catch (error) {
-    console.error('Tone change error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to change tone',
-      error: error.message,
-    });
+    handleAIError(error, res, 'Failed to change tone');
   }
 });
 
@@ -345,12 +351,7 @@ router.post('/continue', async (req, res) => {
       sentences: Math.min(sentences, 10),
     });
   } catch (error) {
-    console.error('Continue writing error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to continue writing',
-      error: error.message,
-    });
+    handleAIError(error, res, 'Failed to continue writing');
   }
 });
 
@@ -389,12 +390,7 @@ router.post('/grammar', async (req, res) => {
       errorCount: result.errors?.length || 0,
     });
   } catch (error) {
-    console.error('Grammar check error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to check grammar',
-      error: error.message,
-    });
+    handleAIError(error, res, 'Failed to check grammar');
   }
 });
 
@@ -425,12 +421,7 @@ router.post('/category', async (req, res) => {
       category,
     });
   } catch (error) {
-    console.error('Category classification error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to classify content',
-      error: error.message,
-    });
+    handleAIError(error, res, 'Failed to classify content');
   }
 });
 
@@ -479,12 +470,7 @@ router.post('/analyze', async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Full analysis error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to analyze content',
-      error: error.message,
-    });
+    handleAIError(error, res, 'Failed to analyze content');
   }
 });
 
