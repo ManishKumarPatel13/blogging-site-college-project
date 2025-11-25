@@ -22,6 +22,10 @@ services:
         value: 5000
       - key: FRONTEND_URL
         value: https://blogging-app-frontend.onrender.com
+      - key: BACKEND_URL
+        value: https://blogging-site-college-project.onrender.com
+      - key: GOOGLE_CALLBACK_URL
+        value: https://blogging-site-college-project.onrender.com/api/auth/google/callback
     healthCheckPath: /
 
   # Frontend Static Site

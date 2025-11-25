@@ -27,9 +27,11 @@ const { User } = require('../models');
  * @param {string} callbackURL - URL where Google redirects after authentication
  */
 
-// Construct the full callback URL
-const BACKEND_URL = process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 5000}`;
-const CALLBACK_URL = `${BACKEND_URL}/api/auth/google/callback`;
+// Use explicit callback URL or construct from environment
+const CALLBACK_URL = process.env.GOOGLE_CALLBACK_URL || 
+  `${process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 5000}`}/api/auth/google/callback`;
+
+console.log('Google OAuth Callback URL:', CALLBACK_URL);
 
 passport.use(
   new GoogleStrategy(
