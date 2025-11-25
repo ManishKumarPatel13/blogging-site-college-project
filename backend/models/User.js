@@ -32,6 +32,7 @@ class User extends Model {
       dob: this.dob,
       gender: this.gender,
       nickname: this.nickname,
+      bio: this.bio,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
     };
@@ -111,6 +112,17 @@ const initUserModel = () => {
           len: {
             args: [0, 50],
             msg: 'Nickname cannot exceed 50 characters',
+          },
+        },
+      },
+      bio: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        defaultValue: '',
+        validate: {
+          len: {
+            args: [0, 500],
+            msg: 'Bio cannot exceed 500 characters',
           },
         },
       },

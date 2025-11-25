@@ -344,6 +344,7 @@ router.get('/user', auth, async (req, res) => {
  * @body {string} dob - Date of birth (optional)
  * @body {string} gender - Gender (optional)
  * @body {string} nickname - Nickname (optional)
+ * @body {string} bio - User bio (optional, max 500 chars)
  * 
  * @returns {Object} 200 - { message: string, user: Object }
  * @returns {Object} 400 - { message: string, errors: Array } - Validation errors
@@ -353,7 +354,7 @@ router.get('/user', auth, async (req, res) => {
  */
 router.put('/profile', auth, async (req, res) => {
   try {
-    const { name, dob, gender, nickname } = req.body;
+    const { name, dob, gender, nickname, bio } = req.body;
     const userId = req.user.id;
 
     // Find user
@@ -398,6 +399,15 @@ router.put('/profile', auth, async (req, res) => {
 
     if (nickname !== undefined) {
       user.nickname = nickname.trim();
+    }
+
+    if (bio !== undefined) {
+      if (bio.length > 500) {
+        return res.status(400).json({ 
+          message: 'Bio cannot exceed 500 characters' 
+        });
+      }
+      user.bio = bio.trim();
     }
 
     // Save updated user
