@@ -16,6 +16,14 @@ const express = require('express');
 const { Blog, User } = require('../models');
 const auth = require('../middleware/auth');
 
+// AI service for auto-tagging (optional, gracefully fails if not configured)
+let aiService;
+try {
+  aiService = require('../services/aiService');
+} catch (e) {
+  console.log('AI service not available');
+}
+
 const router = express.Router();
 
 /**
@@ -207,7 +215,7 @@ router.get('/:id', async (req, res) => {
  */
 router.post('/', auth, async (req, res) => {
   try {
-    const { content, media, template, font, language } = req.body;
+    const { content, media, template, font, language, title, tags, autoTag = true } = req.body;
 
     // Validate input
     const validation = validateBlogInput({ content, media, language });
@@ -218,6 +226,30 @@ router.post('/', auth, async (req, res) => {
       });
     }
 
+    // Auto-generate tags, summary, and category if AI is available and autoTag is enabled
+    let generatedTags = tags || [];
+    let generatedSummary = null;
+    let generatedCategory = 'Other';
+    let aiGenerated = false;
+
+    if (autoTag && aiService && aiService.isAvailable() && content.length >= 100) {
+      try {
+        // Run AI analysis in parallel
+        const [aiTags, aiSummary, aiCategory] = await Promise.all([
+          tags && tags.length > 0 ? Promise.resolve(tags) : aiService.generateTags(content, 5),
+          aiService.generateSummary(content, 'short'),
+          aiService.getCategory(content),
+        ]);
+        
+        generatedTags = aiTags;
+        generatedSummary = aiSummary;
+        generatedCategory = aiCategory;
+        aiGenerated = true;
+      } catch (aiError) {
+        console.log('AI auto-tagging failed, continuing without:', aiError.message);
+      }
+    }
+
     // Create new blog post
     const blog = await Blog.create({
       content: content.trim(),
@@ -226,6 +258,11 @@ router.post('/', auth, async (req, res) => {
       font: font || 'Arial',
       language: language || 'en',
       authorId: req.user.id,
+      title: title || null,
+      tags: generatedTags,
+      summary: generatedSummary,
+      category: generatedCategory,
+      aiGenerated,
     });
     
     // Fetch blog with author details

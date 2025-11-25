@@ -28,6 +28,7 @@ const { initModels, syncDatabase } = require('./models');
 // Import routes
 const authRoutes = require('./routes/auth');
 const blogRoutes = require('./routes/blogs');
+const aiRoutes = require('./routes/ai');
 
 // Initialize Express application
 const app = express();
@@ -82,6 +83,7 @@ if (process.env.NODE_ENV === 'development') {
  */
 app.use('/api/auth', authRoutes);
 app.use('/api/blogs', blogRoutes);
+app.use('/api/ai', aiRoutes);
 
 /**
  * Health Check Endpoint
@@ -98,6 +100,7 @@ app.get('/', (req, res) => {
     endpoints: {
       auth: '/api/auth',
       blogs: '/api/blogs',
+      ai: '/api/ai',
     },
   });
 });

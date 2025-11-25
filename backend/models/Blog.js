@@ -152,6 +152,37 @@ const initBlogModel = () => {
           }
         },
       },
+      // AI-generated fields
+      title: {
+        type: DataTypes.STRING(200),
+        allowNull: true,
+        validate: {
+          len: {
+            args: [0, 200],
+            msg: 'Title cannot exceed 200 characters',
+          },
+        },
+      },
+      tags: {
+        type: DataTypes.ARRAY(DataTypes.STRING(50)),
+        allowNull: true,
+        defaultValue: [],
+      },
+      summary: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+      },
+      category: {
+        type: DataTypes.STRING(50),
+        allowNull: true,
+        defaultValue: 'Other',
+      },
+      aiGenerated: {
+        type: DataTypes.BOOLEAN,
+        allowNull: true,
+        defaultValue: false,
+        field: 'ai_generated',
+      },
     },
     {
       sequelize,
@@ -166,6 +197,14 @@ const initBlogModel = () => {
         },
         {
           fields: ['author_id', 'createdAt'],
+        },
+        {
+          fields: ['category'],
+        },
+        {
+          name: 'blogs_tags_gin',
+          fields: ['tags'],
+          using: 'GIN',
         },
       ],
       hooks: {
