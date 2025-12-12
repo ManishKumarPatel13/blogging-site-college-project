@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { Save, X, Sparkles, Tag } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Save, X, Sparkles, Tag, Wand2, FileText, Hash, AlertCircle } from 'lucide-react';
 import { useCreateBlog } from '../hooks/useBlogs';
 import BlogEditor from '../components/blog/BlogEditor';
 import AutoTagSuggestions from '../components/ai/AutoTagSuggestions';
@@ -98,7 +98,7 @@ const CreateBlogPage = () => {
                 className={`btn-ai inline-flex items-center gap-2 ${showAITools ? 'ring-2 ring-purple-500' : ''}`}
               >
                 <Sparkles className="w-4 h-4" />
-                AI Tools
+                {showAITools ? 'AI Tools On' : 'AI Tools'}
               </button>
               <button
                 type="button"
@@ -110,13 +110,52 @@ const CreateBlogPage = () => {
             </div>
           </div>
 
+          {/* AI Tools Panel */}
+          <AnimatePresence>
+            {showAITools && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="mb-6 p-4 rounded-xl bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 border border-purple-200 dark:border-purple-800"
+              >
+                <div className="flex items-center gap-2 mb-3">
+                  <Wand2 className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                  <h3 className="font-semibold text-purple-900 dark:text-purple-100">AI Writing Assistant</h3>
+                </div>
+                
+                {content.replace(/<[^>]*>/g, '').length < 50 ? (
+                  <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 p-3 rounded-lg">
+                    <AlertCircle className="w-4 h-4" />
+                    <p className="text-sm">Write at least 50 characters of content to unlock AI features like title generation and auto-tagging.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div className="flex items-center gap-2 p-3 bg-white dark:bg-gray-800 rounded-lg">
+                      <FileText className="w-4 h-4 text-purple-500" />
+                      <span className="text-sm text-gray-700 dark:text-gray-300">AI Title Generator - Active</span>
+                    </div>
+                    <div className="flex items-center gap-2 p-3 bg-white dark:bg-gray-800 rounded-lg">
+                      <Hash className="w-4 h-4 text-blue-500" />
+                      <span className="text-sm text-gray-700 dark:text-gray-300">Auto Tag Suggestions - Active</span>
+                    </div>
+                    <div className="flex items-center gap-2 p-3 bg-white dark:bg-gray-800 rounded-lg">
+                      <Sparkles className="w-4 h-4 text-pink-500" />
+                      <span className="text-sm text-gray-700 dark:text-gray-300">In-Editor AI - Select text to use</span>
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Title */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Title
               </label>
-              {showAITools && content.length > 50 ? (
+              {showAITools && content.replace(/<[^>]*>/g, '').length > 50 ? (
                 <TitleGenerator
                   content={content.replace(/<[^>]*>/g, '')}
                   value={title}
