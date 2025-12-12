@@ -48,6 +48,9 @@ export const authAPI = {
   getUser: () => api.get('/api/auth/user'),
   updateProfile: (data) => api.put('/api/auth/profile', data),
   changePassword: (data) => api.put('/api/auth/password', data),
+  forgotPassword: (email) => api.post('/api/auth/forgot-password', { email }),
+  resetPassword: (token, password) => api.post('/api/auth/reset-password', { token, password }),
+  verifyResetToken: (token) => api.get(`/api/auth/verify-reset-token/${token}`),
   googleAuthUrl: () => `${API_URL}/api/auth/google`,
 };
 

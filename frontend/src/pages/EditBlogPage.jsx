@@ -33,7 +33,7 @@ const EditBlogPage = () => {
   
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [excerpt, setExcerpt] = useState('');
+  const [summary, setSummary] = useState('');
   const [category, setCategory] = useState('');
   const [tags, setTags] = useState([]);
   const [tagInput, setTagInput] = useState('');
@@ -58,10 +58,10 @@ const EditBlogPage = () => {
     if (blog) {
       setTitle(blog.title || '');
       setContent(blog.content || '');
-      setExcerpt(blog.excerpt || '');
+      setSummary(blog.summary || '');
       setCategory(blog.category || '');
       setTags(blog.tags || []);
-      setCoverImage(blog.coverImage || '');
+      setCoverImage(blog.media?.[0] || '');
     }
   }, [blog]);
 
@@ -71,13 +71,13 @@ const EditBlogPage = () => {
       const changed = 
         title !== blog.title ||
         content !== blog.content ||
-        excerpt !== (blog.excerpt || '') ||
+        summary !== (blog.summary || '') ||
         category !== (blog.category || '') ||
-        coverImage !== (blog.coverImage || '') ||
+        coverImage !== (blog.media?.[0] || '') ||
         JSON.stringify(tags) !== JSON.stringify(blog.tags || []);
       setHasChanges(changed);
     }
-  }, [title, content, excerpt, category, tags, coverImage, blog]);
+  }, [title, content, summary, category, tags, coverImage, blog]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -96,10 +96,10 @@ const EditBlogPage = () => {
       const blogData = {
         title: title.trim(),
         content,
-        excerpt: excerpt.trim() || content.replace(/<[^>]*>/g, '').substring(0, 200),
+        summary: summary.trim() || undefined,
         category: category || 'Other',
         tags,
-        coverImage: coverImage.trim() || undefined,
+        media: coverImage.trim() ? [coverImage.trim()] : undefined,
       };
       
       await updateBlog.mutateAsync({ id, data: blogData });
@@ -277,19 +277,19 @@ const EditBlogPage = () => {
               </div>
             </div>
 
-            {/* Excerpt */}
+            {/* Summary */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Excerpt (optional)
+                Summary (optional)
               </label>
               <textarea
-                value={excerpt}
-                onChange={(e) => setExcerpt(e.target.value)}
+                value={summary}
+                onChange={(e) => setSummary(e.target.value)}
                 placeholder="Brief description of your blog (auto-generated if left empty)"
                 className="input h-24 resize-none"
                 maxLength={500}
               />
-              <p className="mt-1 text-sm text-gray-500">{excerpt.length}/500 characters</p>
+              <p className="mt-1 text-sm text-gray-500">{summary.length}/500 characters</p>
             </div>
 
             {/* Content Editor */}

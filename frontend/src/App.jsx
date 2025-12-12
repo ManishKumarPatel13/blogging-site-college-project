@@ -4,7 +4,6 @@ import { useAuthStore } from './stores/authStore';
 
 // Layout
 import Header from './components/layout/Header';
-import Footer from './components/layout/Footer';
 import ErrorBoundary from './components/common/ErrorBoundary';
 
 // Pages
@@ -15,6 +14,8 @@ import CreateBlogPage from './pages/CreateBlogPage';
 import EditBlogPage from './pages/EditBlogPage';
 import MyBlogsPage from './pages/MyBlogsPage';
 import ProfilePage from './pages/ProfilePage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 
 // Auth
 import LoginForm from './components/auth/LoginForm';
@@ -82,6 +83,22 @@ function App() {
                 </PublicRoute>
               } 
             />
+            <Route 
+              path="/forgot-password" 
+              element={
+                <PublicRoute>
+                  <ForgotPasswordPage />
+                </PublicRoute>
+              } 
+            />
+            <Route 
+              path="/reset-password" 
+              element={
+                <PublicRoute>
+                  <ResetPasswordPage />
+                </PublicRoute>
+              } 
+            />
             <Route path="/auth/callback" element={<AuthCallback />} />
             
             {/* Protected Routes */}
@@ -131,7 +148,6 @@ function App() {
             />
           </Routes>
         </main>
-        <Footer />
       </div>
     </ErrorBoundary>
   );

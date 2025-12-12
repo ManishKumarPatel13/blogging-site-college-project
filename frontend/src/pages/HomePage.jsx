@@ -58,13 +58,6 @@ const HomePage = () => {
     },
   ];
 
-  const stats = [
-    { value: '10K+', label: 'Active Writers' },
-    { value: '50K+', label: 'Blogs Published' },
-    { value: '99%', label: 'Satisfaction Rate' },
-    { value: '24/7', label: 'AI Assistance' },
-  ];
-
   return (
     <div className="overflow-hidden">
       {/* Hero Section */}
@@ -143,21 +136,6 @@ const HomePage = () => {
                   </Link>
                 </>
               )}
-            </motion.div>
-
-            {/* Trust Badges */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5, delay: 0.5 }}
-              className="mt-12 flex flex-wrap items-center justify-center gap-8"
-            >
-              {stats.map((stat, index) => (
-                <div key={index} className="text-center">
-                  <div className="text-2xl font-bold text-gray-900 dark:text-white">{stat.value}</div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">{stat.label}</div>
-                </div>
-              ))}
             </motion.div>
           </div>
         </div>
