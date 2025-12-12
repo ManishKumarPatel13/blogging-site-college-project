@@ -7,22 +7,27 @@
  * - Google OAuth authentication
  * - JWT token generation and validation
  * - User profile management
+ * - Password reset functionality
  * 
  * @module routes/auth
  * @requires express
  * @requires bcryptjs
  * @requires jsonwebtoken
+ * @requires crypto
  * @requires passport
  * @requires ../models
  * @requires ../middleware/auth
+ * @requires ../services/emailService
  */
 
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const passport = require('passport');
 const { User } = require('../models');
 const auth = require('../middleware/auth');
+const { sendPasswordResetEmail } = require('../services/emailService');
 
 const router = express.Router();
 
@@ -277,7 +282,7 @@ router.get(
       // Redirect to frontend with token
       // Adjust the URL based on your frontend configuration
       const frontendURL = process.env.FRONTEND_URL || 'http://localhost:3000';
-      res.redirect(`${frontendURL}/auth/success?token=${token}`);
+      res.redirect(`${frontendURL}/auth/callback?token=${token}`);
     } catch (err) {
       console.error('Google callback error:', err);
       res.redirect('/api/auth/google/failure');
@@ -507,6 +512,214 @@ router.put('/password', auth, async (req, res) => {
     res.status(500).json({ 
       message: 'Server error while updating password',
       error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
+  }
+});
+
+/**
+ * @route   POST /api/auth/forgot-password
+ * @desc    Request password reset email
+ * @access  Public
+ * 
+ * @body {string} email - User's email address (required)
+ * 
+ * @returns {Object} 200 - { message: string } - Email sent (or generic message for security)
+ * @returns {Object} 400 - { message: string } - Invalid email
+ * @returns {Object} 500 - { message: string } - Server error
+ */
+router.post('/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    // Validate email
+    if (!email) {
+      return res.status(400).json({
+        message: 'Please provide an email address',
+      });
+    }
+
+    // Find user by email
+    const user = await User.findOne({ where: { email: email.toLowerCase() } });
+
+    // Always return success message for security (don't reveal if email exists)
+    if (!user) {
+      return res.json({
+        message: 'If an account with that email exists, a password reset link has been sent.',
+      });
+    }
+
+    // Check if user uses Google OAuth only
+    if (!user.password && user.googleId) {
+      return res.json({
+        message: 'If an account with that email exists, a password reset link has been sent.',
+      });
+    }
+
+    // Generate reset token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    
+    // Hash token before storing (for security)
+    const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+
+    // Set token and expiration (1 hour)
+    user.resetPasswordToken = hashedToken;
+    user.resetPasswordExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+    await user.save();
+
+    // Send email
+    const emailSent = await sendPasswordResetEmail(user.email, resetToken, user.name);
+
+    if (!emailSent) {
+      // Clear the token if email fails
+      user.resetPasswordToken = null;
+      user.resetPasswordExpires = null;
+      await user.save();
+      
+      return res.status(500).json({
+        message: 'Failed to send password reset email. Please try again later.',
+      });
+    }
+
+    res.json({
+      message: 'If an account with that email exists, a password reset link has been sent.',
+    });
+  } catch (err) {
+    console.error('Forgot password error:', err);
+    res.status(500).json({
+      message: 'Server error while processing password reset request',
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined,
+    });
+  }
+});
+
+/**
+ * @route   POST /api/auth/reset-password
+ * @desc    Reset password using token
+ * @access  Public
+ * 
+ * @body {string} token - Password reset token from email (required)
+ * @body {string} password - New password (required, min 6 chars)
+ * 
+ * @returns {Object} 200 - { message: string } - Password reset successful
+ * @returns {Object} 400 - { message: string } - Invalid/expired token or validation error
+ * @returns {Object} 500 - { message: string } - Server error
+ */
+router.post('/reset-password', async (req, res) => {
+  try {
+    const { token, password } = req.body;
+
+    // Validate input
+    if (!token || !password) {
+      return res.status(400).json({
+        message: 'Token and new password are required',
+      });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({
+        message: 'Password must be at least 6 characters long',
+      });
+    }
+
+    // Hash the received token to compare with stored hash
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+    // Find user with valid token
+    const user = await User.findOne({
+      where: {
+        resetPasswordToken: hashedToken,
+      },
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        message: 'Invalid or expired password reset token',
+      });
+    }
+
+    // Check if token has expired
+    if (user.resetPasswordExpires < new Date()) {
+      // Clear expired token
+      user.resetPasswordToken = null;
+      user.resetPasswordExpires = null;
+      await user.save();
+
+      return res.status(400).json({
+        message: 'Password reset token has expired. Please request a new one.',
+      });
+    }
+
+    // Hash new password
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(password, salt);
+    
+    // Clear reset token fields
+    user.resetPasswordToken = null;
+    user.resetPasswordExpires = null;
+
+    // Save user
+    await user.save();
+
+    res.json({
+      message: 'Password has been reset successfully. You can now login with your new password.',
+    });
+  } catch (err) {
+    console.error('Reset password error:', err);
+    res.status(500).json({
+      message: 'Server error while resetting password',
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined,
+    });
+  }
+});
+
+/**
+ * @route   GET /api/auth/verify-reset-token/:token
+ * @desc    Verify if password reset token is valid
+ * @access  Public
+ * 
+ * @param {string} token - Password reset token
+ * 
+ * @returns {Object} 200 - { valid: true } - Token is valid
+ * @returns {Object} 400 - { valid: false, message: string } - Token invalid/expired
+ */
+router.get('/verify-reset-token/:token', async (req, res) => {
+  try {
+    const { token } = req.params;
+
+    // Hash the received token
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+    // Find user with valid token
+    const user = await User.findOne({
+      where: {
+        resetPasswordToken: hashedToken,
+      },
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        valid: false,
+        message: 'Invalid password reset token',
+      });
+    }
+
+    // Check if token has expired
+    if (user.resetPasswordExpires < new Date()) {
+      return res.status(400).json({
+        valid: false,
+        message: 'Password reset token has expired',
+      });
+    }
+
+    res.json({
+      valid: true,
+      message: 'Token is valid',
+    });
+  } catch (err) {
+    console.error('Verify reset token error:', err);
+    res.status(500).json({
+      valid: false,
+      message: 'Server error while verifying token',
     });
   }
 });

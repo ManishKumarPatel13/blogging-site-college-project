@@ -162,6 +162,14 @@ const initUserModel = () => {
         allowNull: true,
         unique: true,
       },
+      resetPasswordToken: {
+        type: DataTypes.STRING(255),
+        allowNull: true,
+      },
+      resetPasswordExpires: {
+        type: DataTypes.DATE,
+        allowNull: true,
+      },
     },
     {
       sequelize,
